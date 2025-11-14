@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Cartographie des partenariats IA x Médias</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Leaflet + OMS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OverlappingMarkerSpiderfier-Leaflet/0.2.6/oms.min.css"/>
+<style>
+html,body{
+height:100%;
+margin:0;
+font-family:Arial,Helvetica,sans-serif
+}
+/* Map */
+#map{
+position:absolute;
+top:0;left:0;right:0;bottom:0;
+z-index:1;
+}
+/* Search bar */
+#searchBar{
+position:absolute;
+top:20px;
+left:50%;
+transform:translateX(-50%);
+z-index:9999;
+background:white;
+padding:6px 12px;
+border-radius:20px;
+display:flex;
+box-shadow:0 2px 8px rgba(0,0,0,0.25);
+}
+#searchInput{
+border:none;
+outline:none;
+font-size:14px;
+width:220px;
+}
+/* Title footer */
+#title-footer{
+position:absolute;
+bottom:15px;
+left:50%;
+transform:translateX(-50%);
+background:rgba(255,255,255,0.85);
+padding:8px 16px;
+border-radius:12px;
+font-size:15px;
+font-weight:600;
+backdrop-filter:blur(4px);
+z-index:9999;
+box-shadow:0 2px 8px rgba(0,0,0,0.25);
+}
+/* Filters */
+.filterBar{
+position:absolute;
+bottom:70px;
+left:50%;
+transform:translateX(-50%);
+background:white;
+padding:8px 12px;
+border-radius:16px;
+z-index:9999;
+box-shadow:0 2px 8px rgba(0,0,0,0.25);
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+font-size:13px;
+max-width:900px;
+justify-content:center;
+}
+.filterBtn{
+padding:6px 10px;
+border-radius:12px;
+background:#f2f2f2;
+cursor:pointer;
+border:1px solid #ddd;
+white-space:nowrap;
+}
+.filterBtn:hover{background:#e8e8e8}
+.filterActive{
+background:#d0d0ff!important;
+border-color:#7e57c2!important
+}
+/* Timeline button top-right */
+#timelineToggle{
+position:absolute;
+top:20px;
+right:20px;
+z-index:9990; /* sous le panneau */
+background:white;
+padding:6px 14px;
+border-radius:14px;
+border:1px solid #ccc;
+font-size:14px;
+cursor:pointer;
+box-shadow:0 2px 8px rgba(0,0,0,0.25);
+}
+#timelineToggle:hover{background:#eee}
+/* Timeline slider */
+#timelineContainer{
+position:absolute;
+top:70px;
+right:20px;
+display:none;
+z-index:9989; /* sous le panneau */
+background:white;
+padding:10px 14px;
+border-radius:14px;
+box-shadow:0 2px 8px rgba(0,0,0,0.25);
+}
+#yearSlider{width:180px;}
+#timelineLabel{
+text-align:center;
+font-size:14px;
+font-weight:bold;
+margin-top:6px;
+}
+/* Panel */
+#panel{
+position:absolute;
+top:0;
+right:0;
+width:340px;
+max-width:80%;
+height:100%;
+background:white;
+padding:16px;
+box-sizing:border-box;
+overflow-y:auto;
+display:none;
+z-index:9998;
+box-shadow:-2px 0 10px rgba(0,0,0,0.2);
+}
+#panelClose{
+position:absolute;
+top:8px;
+right:10px;
+font-size:18px;
+color:#999;
+cursor:pointer;
+}
+h2{margin:6px 0 12px;font-size:18px}
+.node-title{font-weight:700;margin-bottom:6px}
+.meta{font-size:13px;margin-bottom:6px;color:#333}
+.small{color:#666;font-size:12px}
+.partners-list{margin:8px 0;padding-left:18px}
+/* Logo dans le panneau */
+.logo-panel{
+width:72px;
+height:72px;
+border-radius:50%;
+overflow:hidden;
+margin-bottom:10px;
+box-shadow:0 2px 6px rgba(0,0,0,0.25);
+}
+.logo-panel img{
+width:100%;
+height:100%;
+display:block;
+object-fit:cover;
+}
+/* Markers */
+.leaflet-div-icon.logo-marker{
+display:flex;
+align-items:center;
+justify-content:center;
+width:30px;
+height:30px;
+border-radius:50%;
+font-size:12px;
+font-weight:700;
+color:#ffffff;
+background:rgba(255,255,255,0.12);
+border:1.4px solid rgba(255,255,255,0.9);
+box-shadow:0 3px 10px rgba(0,0,0,0.25);
+backdrop-filter:blur(3px);
+}
+.logo-ia{
+background:linear-gradient(135deg,#6e48c0,#8d6bdf)!important;
+}
+.logo-media{
+background:linear-gradient(135deg,#1aa88a,#34cdb4)!important;
+}
+/* Animation des lignes */
+.grow-line{
+stroke-dasharray:1000;
+stroke-dashoffset:1000;
+animation:grow 1.8s ease forwards;
+}
+@keyframes grow{
+to{stroke-dashoffset:0}
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<!-- SEARCH BAR -->
+<div id="searchBar">
+<input id="searchInput" type="text" placeholder="Rechercher une entreprise...">
+</div>
+<!-- TITLE -->
+<div id="title-footer">Cartographie des partenariats IA ↔ Médias (2023–2025)</div>
+<!-- TIMELINE TOGGLE -->
+<div id="timelineToggle">Activer la timeline</div>
+<!-- TIMELINE SLIDER -->
+<div id="timelineContainer">
+<input type="range" id="yearSlider" min="2023" max="2025" step="1" value="2025">
+<div id="timelineLabel">Année : 2025</div>
+</div>
+<!-- FILTERS -->
+<div class="filterBar">
+<div class="filterBtn" data-filter="ia">IA</div>
+<div class="filterBtn" data-filter="media">Médias</div>
+<div class="filterBtn" data-filter="openai">OpenAI</div>
+<div class="filterBtn" data-filter="google">Google</div>
+<div class="filterBtn" data-filter="microsoft">Microsoft</div>
+<div class="filterBtn" data-filter="meta">Meta</div>
+<div class="filterBtn" data-filter="perplexity">Perplexity</div>
+<div class="filterBtn" data-filter="deepmind">DeepMind</div>
+<div class="filterBtn" data-filter="mistral">Mistral</div>
+<div class="filterBtn" data-filter="allLinks">Toutes connexions</div>
+<div class="filterBtn" data-filter="reset">Reset</div>
+</div>
+<!-- PANEL -->
+<div id="panel">
+<div id="panelClose">✕</div>
+<h2>Partenariats IA ↔ Médias</h2>
+<div id="details"><p class="small">Clique sur une entreprise.</p></div>
+</div>
+<!-- JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/OverlappingMarkerSpiderfier-Leaflet/0.2.6/oms.min.js"></script>
+<script>
+/* ================================
+MAP + SPIDERFIER
+================================= */
+const map = L.map("map").setView([30,0],2);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:8}).addTo(map);
+const oms = new OverlappingMarkerSpiderfier(map,{keepSpiderfied:true,nearbyDistance:20});
+/* ================================
+DATASET NODES
+================================= */
+const nodes = [
+{id:"openai",type:"ia",color:"#7E57C2",short:"OA",name:"OpenAI",city:"San Francisco",country:"USA",coords:[37.7749,-122.4194]},
+{id:"google",type:"ia",color:"#4285F4",short:"GO",name:"Google",city:"Mountain View",country:"USA",coords:[37.3861,-122.0839]},
+{id:"meta",type:"ia",color:"#1877F2",short:"ME",name:"Meta",city:"Menlo Park",country:"USA",coords:[37.4529,-122.1817]},
+{id:"microsoft",type:"ia",color:"#2EB82E",short:"MS",name:"Microsoft",city:"Redmond",country:"USA",coords:[47.674,-122.1215]},
+{id:"perplexity",type:"ia",color:"#26C6DA",short:"PX",name:"Perplexity",city:"San Francisco",country:"USA",coords:[37.7749,-122.4194]},
+{id:"deepmind",type:"ia",color:"#1A237E",short:"DM",name:"DeepMind",city:"Londres",country:"UK",coords:[51.5074,-0.1278]},
+{id:"mistral",type:"ia",color:"#EF5350",short:"MI",name:"Mistral AI",city:"Paris",country:"France",coords:[48.8566,2.3522]},
+{id:"newscorp",type:"media",short:"NC",name:"News Corp",city:"New York",country:"USA",coords:[40.7128,-74.006]},
+{id:"financialtimes",type:"media",short:"FT",name:"Financial Times",city:"Londres",country:"UK",coords:[51.5074,-0.1278]},
+{id:"theatlantic",type:"media",short:"TA",name:"The Atlantic",city:"Washington",country:"USA",coords:[38.9072,-77.0369]},
+{id:"axelspringer",type:"media",short:"AS",name:"Axel Springer",city:"Berlin",country:"Allemagne",coords:[52.52,13.405]},
+{id:"voxmedia",type:"media",short:"VX",name:"Vox Media",city:"New York",country:"USA",coords:[40.7128,-74.006]},
+{id:"condenast",type:"media",short:"CN",name:"Condé Nast",city:"New York",country:"USA",coords:[40.7128,-74.006]},
+{id:"hearst",type:"media",short:"HE",name:"Hearst",city:"New York",country:"USA",coords:[40.7128,-74.006]},
+{id:"dotdashmeredith",type:"media",short:"DD",name:"Dotdash Meredith",city:"New York",country:"USA",coords:[40.7128,-74.006]},
+{id:"lemonde",type:"media",short:"LM",name:"Le Monde",city:"Paris",country:"France",coords:[48.8566,2.3522]},
+{id:"prisamedia",type:"media",short:"PM",name:"Prisa Media",city:"Madrid",country:"Espagne",coords:[40.4168,-3.7038]},
+{id:"timemagazine",type:"media",short:"TI",name:"Time Magazine",city:"New York",country:"USA",coords:[40.7128,-74.006]},
+{id:"ap",type:"media",short:"AP",name:"AP",city:"New York",country:"USA",coords:[40.7128,-74.006]},
+{id:"axios",type:"media",short:"AX",name:"Axios",city:"Arlington",country:"USA",coords:[38.8816,-77.091]},
+{id:"futureplc",type:"media",short:"FP",name:"Future plc",city:"Bath",country:"UK",coords:[51.3811,-2.359]},
+{id:"schibsted",type:"media",short:"SC",name:"Schibsted",city:"Oslo",country:"Norvège",coords:[59.9139,10.7522]},
+{id:"guardian",type:"media",short:"GM",name:"Guardian",city:"Londres",country:"UK",coords:[51.5074,-0.1278]},
+{id:"gedi",type:"media",short:"GE",name:"GEDI",city:"Rome",country:"Italie",coords:[41.9028,12.4964]},
+{id:"reuters",type:"media",short:"RT",name:"Reuters",city:"Londres",country:"UK",coords:[51.5074,-0.1278]},
+{id:"usatoday",type:"media",short:"UT",name:"USA Today Network",city:"McLean",country:"USA",coords:[38.9339,-77.1773]},
+{id:"people",type:"media",short:"PE",name:"People Inc.",city:"New York",country:"USA",coords:[40.7128,-74.006]},
+{id:"derspiegel",type:"media",short:"DS",name:"Der Spiegel",city:"Hambourg",country:"Allemagne",coords:[53.5511,9.9937]},
+{id:"fortune",type:"media",short:"FO",name:"Fortune",city:"New York",country:"USA",coords:[40.7128,-74.006]},
+{id:"entrepreneur",type:"media",short:"EN",name:"Entrepreneur",city:"Irvine",country:"USA",coords:[33.6846,-117.8265]},
+{id:"texastribune",type:"media",short:"TT",name:"Texas Tribune",city:"Austin",country:"USA",coords:[30.2672,-97.7431]},
+{id:"latimes",type:"media",short:"LA",name:"LA Times",city:"Los Angeles",country:"USA",coords:[34.0522,-118.2437]},
+{id:"adweek",type:"media",short:"AW",name:"Adweek",city:"New York",country:"USA",coords:[40.7128,-74.006]},
+{id:"independent",type:"media",short:"IN",name:"The Independent",city:"Londres",country:"UK",coords:[51.5074,-0.1278]},
+{id:"leeenterprises",type:"media",short:"LE",name:"Lee Enterprises",city:"Davenport",country:"USA",coords:[41.5236,-90.5776]},
+{id:"bertelsmann",type:"media",short:"BE",name:"Bertelsmann",city:"Gütersloh",country:"Allemagne",coords:[51.9039,8.3834]}
+];
+/* ================================
+PARTENARIATS AVEC ANNÉE
+================================= */
+const links = [
+{from:"openai",to:"newscorp",year:2024},
+{from:"openai",to:"financialtimes",year:2024},
+{from:"openai",to:"theatlantic",year:2024},
+{from:"openai",to:"axelspringer",year:2023},
+{from:"openai",to:"voxmedia",year:2024},
+{from:"openai",to:"condenast",year:2024},
+{from:"openai",to:"hearst",year:2024},
+{from:"openai",to:"dotdashmeredith",year:2024},
+{from:"openai",to:"lemonde",year:2024},
+{from:"openai",to:"prisamedia",year:2024},
+{from:"openai",to:"timemagazine",year:2024},
+{from:"openai",to:"ap",year:2023},
+{from:"openai",to:"axios",year:2025},
+{from:"openai",to:"futureplc",year:2024},
+{from:"openai",to:"schibsted",year:2024},
+{from:"openai",to:"guardian",year:2024},
+{from:"openai",to:"gedi",year:2024},
+{from:"openai",to:"bertelsmann",year:2025},
+{from:"google",to:"newscorp",year:2024},
+{from:"google",to:"ap",year:2024},
+{from:"meta",to:"reuters",year:2024},
+{from:"microsoft",to:"reuters",year:2024},
+{from:"microsoft",to:"axelspringer",year:2024},
+{from:"microsoft",to:"hearst",year:2024},
+{from:"microsoft",to:"usatoday",year:2024},
+{from:"microsoft",to:"financialtimes",year:2024},
+{from:"microsoft",to:"people",year:2025},
+{from:"perplexity",to:"timemagazine",year:2024},
+{from:"perplexity",to:"derspiegel",year:2024},
+{from:"perplexity",to:"fortune",year:2024},
+{from:"perplexity",to:"entrepreneur",year:2024},
+{from:"perplexity",to:"texastribune",year:2024},
+{from:"perplexity",to:"latimes",year:2024},
+{from:"perplexity",to:"adweek",year:2024},
+{from:"perplexity",to:"independent",year:2024},
+{from:"perplexity",to:"prisamedia",year:2024},
+{from:"perplexity",to:"leeenterprises",year:2024},
+{from:"deepmind",to:"financialtimes",year:2023},
+{from:"mistral",to:"lemonde",year:2024}
+];
+/* ================================
+LOGOS (SVG → base64)
+================================= */
+const logos = {};
+function makeLogoDataUrl(node){
+const color = (node.type === "ia") ? "#6e48c0" : "#1aa88a";
+const text = node.short || "?";
+const svg =
+"<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'>" +
+"<circle cx='40' cy='40' r='36' fill='" + color + "' />" +
+"<text x='40' y='46' text-anchor='middle' font-family='Arial' font-size='28' fill='#ffffff'>" +
+text +
+"</text>" +
+"</svg>";
+const base64 = btoa(svg);
+return "data:image/svg+xml;base64," + base64;
+}
+/* ================================
+MARQUEURS
+================================= */
+const nodeMarkers = {};
+nodes.forEach(n=>{
+// logo base64 pour le panneau
+logos[n.id] = makeLogoDataUrl(n);
+const icon = L.divIcon({
+className: "leaflet-div-icon logo-marker " + (n.type==="ia" ? "logo-ia" : "logo-media"),
+html: n.short,
+iconSize:[30,30],
+iconAnchor:[15,15]
+});
+const m = L.marker(n.coords,{icon});
+m.addTo(map);
+oms.addMarker(m);
+m.on("click",()=>onNodeClick(n));
+nodeMarkers[n.id] = m;
+});
+/* ============================================
+ARCS ENTRE POINTS (moitié haut / moitié bas)
+============================================== */
+function buildArcCoords(a, b, index, total){
+const lat1 = a[0], lon1 = a[1];
+const lat2 = b[0], lon2 = b[1];
+const dx = lat2 - lat1;
+const dy = lon2 - lon1;
+const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+const mx = (lat1 + lat2) / 2;
+const my = (lon1 + lon2) / 2;
+// ➤ moitié haute / moitié basse
+const direction = (index < total/2) ? 1 : -1;
+const nx = (-dy / dist) * direction;
+const ny = ( dx / dist) * direction;
+const curveFactor = 0.12;
+const cx = mx + nx * curveFactor * dist;
+const cy = my + ny * curveFactor * dist;
+const coords = [];
+const steps = 24;
+for (let i=0; i<=steps; i++){
+const t = i / steps;
+const lat = (1-t)*(1-t)*lat1 + 2*(1-t)*t*cx + t*t*lat2;
+const lon = (1-t)*(1-t)*lon1 + 2*(1-t)*t*cy + t*t*lon2;
+coords.push([lat, lon]);
+}
+return coords;
+}
+/* ============================================
+LIGNES (ARCS COLORÉS)
+============================================== */
+const linkLayers = links.map((l, idx) => {
+const A = nodes.find(n => n.id === l.from);
+const B = nodes.find(n => n.id === l.to);
+const arcCoords = buildArcCoords(A.coords, B.coords, idx, links.length);
+const line = L.polyline(arcCoords, {
+color: A.color,
+weight: 2.4,
+opacity: 0.9
+});
+return { from: A, to: B, year: l.year, layer: line };
+});
+/* ================================
+PANEL
+================================= */
+const panel = document.getElementById("panel");
+const details = document.getElementById("details");
+document.getElementById("panelClose").onclick = ()=>{
+clearSelection();
+panel.style.display = "none";
+};
+function clearSelection(){
+linkLayers.forEach(l=>map.removeLayer(l.layer));
+details.innerHTML = "<p class='small'>Clique sur une entreprise.</p>";
+}
+function onNodeClick(n){
+clearSelection();
+// toujours afficher tous les marqueurs
+nodes.forEach(v=>nodeMarkers[v.id].addTo(map));
+const rel = linkLayers.filter(l=>l.from.id===n.id || l.to.id===n.id);
+rel.forEach(l=>{
+l.layer.addTo(map);
+if(l.layer._path) l.layer._path.classList.add("grow-line");
+});
+const partners = rel.map(l => (l.from.id===n.id ? l.to : l.from));
+partners.forEach(p=>{
+nodeMarkers[p.id].addTo(map);
+});
+const logoUrl = logos[n.id] || "";
+const logoHtml = logoUrl
+? `<div class="logo-panel"><img src="${logoUrl}" alt="Logo ${n.name}"></div>`
+: "";
+details.innerHTML = `
+${logoHtml}
+<div class="node-title">${n.name}</div>
+<div class="meta">📍 ${n.city}, ${n.country}</div>
+<strong>Partenariats</strong>
+<ul class="partners-list">
+${rel.map(l=>{
+const o = (l.from.id===n.id ? l.to : l.from);
+return `<li>${o.name} (${l.year})</li>`;
+}).join("")}
+</ul>
+`;
+panel.style.display = "block";
+}
+/* ================================
+RECHERCHE
+================================= */
+document.getElementById("searchInput").addEventListener("input",function(){
+const q = this.value.toLowerCase().trim();
+if(q.length<2) return;
+const found = nodes.find(n =>
+n.name.toLowerCase().includes(q) ||
+n.short.toLowerCase().includes(q)
+);
+if(found){
+map.setView(found.coords,4);
+onNodeClick(found);
+}
+});
+/* ================================
+FILTRES + ALL CONNECTIONS
+================================= */
+document.querySelectorAll(".filterBtn").forEach(btn=>{
+btn.onclick = ()=>{
+const f = btn.dataset.filter;
+document.querySelectorAll(".filterBtn").forEach(b=>b.classList.remove("filterActive"));
+btn.classList.add("filterActive");
+clearSelection();
+nodes.forEach(n=>map.removeLayer(nodeMarkers[n.id]));
+/* RESET */
+if(f === "reset"){
+timelineActive = false;
+timelineBox.style.display = "none";
+toggleBtn.innerHTML = "Activer la timeline";
+clearSelection();
+nodes.forEach(n=>nodeMarkers[n.id].addTo(map));
+panel.style.display = "none";
+document.querySelectorAll(".filterBtn").forEach(b=>b.classList.remove("filterActive"));
+return;
+}
+/* Toutes connexions */
+if(f === "allLinks"){
+nodes.forEach(n=>nodeMarkers[n.id].addTo(map));
+linkLayers.forEach(l=>{
+l.layer.addTo(map);
+if(l.layer._path) l.layer._path.classList.add("grow-line");
+});
+panel.style.display = "none";
+return;
+}
+/* IA group */
+if(f === "ia"){
+nodes.filter(n=>n.type==="ia").forEach(n=>nodeMarkers[n.id].addTo(map));
+panel.style.display = "none";
+return;
+}
+/* MEDIA group */
+if(f === "media"){
+nodes.filter(n=>n.type==="media").forEach(n=>nodeMarkers[n.id].addTo(map));
+panel.style.display = "none";
+return;
+}
+/* IA unique */
+const iaNode = nodes.find(n=>n.id===f);
+if(iaNode){
+// afficher les marqueurs concernés
+nodeMarkers[iaNode.id].addTo(map);
+const partners = linkLayers
+.filter(l=>l.from.id===iaNode.id || l.to.id===iaNode.id)
+.map(l => l.from.id===iaNode.id ? l.to : l.from);
+partners.forEach(p=>nodeMarkers[p.id].addTo(map));
+// afficher les lignes
+linkLayers.forEach(l=>{
+const show = (l.from.id===iaNode.id || l.to.id===iaNode.id);
+if(show){
+l.layer.addTo(map);
+if(l.layer._path) l.layer._path.classList.add("grow-line");
+}
+});
+// ouvrir le panneau sur l’IA
+onNodeClick(iaNode);
+return;
+}
+/* MEDIA unique (si un jour tu ajoutes un bouton) */
+const mediaNode = nodes.find(n=>n.id===f);
+if(mediaNode){
+nodeMarkers[mediaNode.id].addTo(map);
+panel.style.display = "none";
+return;
+}
+};
+});
+/* ================================
+TIMELINE
+================================= */
+let timelineActive = false;
+const toggleBtn = document.getElementById("timelineToggle");
+const timelineBox = document.getElementById("timelineContainer");
+const slider = document.getElementById("yearSlider");
+const label = document.getElementById("timelineLabel");
+toggleBtn.onclick = ()=>{
+timelineActive = !timelineActive;
+if(timelineActive){
+toggleBtn.innerHTML = "Désactiver la timeline";
+timelineBox.style.display = "block";
+applyTimeline();
+} else {
+toggleBtn.innerHTML = "Activer la timeline";
+timelineBox.style.display = "none";
+restoreAll();
+}
+};
+function restoreAll(){
+clearSelection();
+nodes.forEach(n=>nodeMarkers[n.id].addTo(map));
+linkLayers.forEach(l=>{
+l.layer.addTo(map);
+if(l.layer._path) l.layer._path.classList.add("grow-line");
+});
+}
+function applyTimeline(){
+const year = parseInt(slider.value,10);
+label.innerHTML = "Année : " + year;
+clearSelection();
+nodes.forEach(n=>nodeMarkers[n.id].addTo(map));
+linkLayers.forEach(l=>{
+const a = map.hasLayer(nodeMarkers[l.from.id]);
+const b = map.hasLayer(nodeMarkers[l.to.id]);
+if(l.year === year && a && b){
+l.layer.addTo(map);
+if(l.layer._path) l.layer._path.classList.add("grow-line");
+}
+});
+}
+slider.oninput = ()=>{
+if(timelineActive) applyTimeline();
+};
+</script>
+</body>
+</html>

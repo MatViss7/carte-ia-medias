@@ -505,25 +505,43 @@ nodes.filter(n=>n.type==="media").forEach(n=>nodeMarkers[n.id].addTo(map));
 panel.style.display = "none";
 return;
 }
-/* IA unique */
-const iaNode = nodes.find(n=>n.id===f);
-if(iaNode){
-// afficher les marqueurs concernés
+/* IA unique → montrer uniquement l’IA + ses partenaires */
+const iaNode = nodes.find(n => n.id === f);
+if (iaNode) {
+// 1) Masquer tous les marqueurs
+nodes.forEach(n => map.removeLayer(nodeMarkers[n.id]));
+// 2) Toujours afficher l’IA
 nodeMarkers[iaNode.id].addTo(map);
-const partners = linkLayers
-.filter(l=>l.from.id===iaNode.id || l.to.id===iaNode.id)
-.map(l => l.from.id===iaNode.id ? l.to : l.from);
-partners.forEach(p=>nodeMarkers[p.id].addTo(map));
-// afficher les lignes
-linkLayers.forEach(l=>{
-const show = (l.from.id===iaNode.id || l.to.id===iaNode.id);
-if(show){
+// 3) Trouver les partenaires
+const rel = linkLayers.filter(
+l => l.from.id === iaNode.id || l.to.id === iaNode.id
+);
+const partners = rel.map(l =>
+(l.from.id === iaNode.id ? l.to : l.from)
+);
+// 4) Afficher les partenaires
+partners.forEach(p => nodeMarkers[p.id].addTo(map));
+// 5) Afficher uniquement les lignes liées
+linkLayers.forEach(l => {
+const show = (l.from.id === iaNode.id || l.to.id === iaNode.id);
+if (show) {
 l.layer.addTo(map);
-if(l.layer._path) l.layer._path.classList.add("grow-line");
+if (l.layer._path) l.layer._path.classList.add("grow-line");
 }
 });
-// ouvrir le panneau sur l’IA
-onNodeClick(iaNode);
+// 6) Mettre à jour le panneau
+details.innerHTML = `
+<div class="node-title">${iaNode.name}</div>
+<div class="meta">📍 ${iaNode.city}, ${iaNode.country}</div>
+<strong>Partenariats</strong>
+<ul class="partners-list">
+${rel.map(l => {
+const o = (l.from.id === iaNode.id ? l.to : l.from);
+return `<li>${o.name} (${l.year})</li>`;
+}).join("")}
+</ul>
+`;
+panel.style.display = "block";
 return;
 }
 /* MEDIA unique (si un jour tu ajoutes un bouton) */

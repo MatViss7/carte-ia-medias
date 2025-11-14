@@ -1,51 +1,60 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8">
-<title>Cartographie des partenariats IA ↔ Médias</title>
+<meta charset="utf-8" />
+<title>Cartographie IA x Médias (2023–2025)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Leaflet -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
-<!-- MarkerCluster -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
+<!-- Cluster markers -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css"/>
 <style>
-html, body { margin:0; height:100%; font-family: Arial, Helvetica, sans-serif; }
-/* MAP */
-#map { position:absolute; top:0; left:0; right:0; bottom:0; }
-/* SEARCH BAR */
+html,body{
+height:100%;
+margin:0;
+font-family:Arial,Helvetica,sans-serif;
+}
+#map{
+position:absolute;
+top:0;left:0;right:0;bottom:0;
+z-index:1;
+}
+/* Search bar */
 #searchBar{
 position:absolute;
 top:20px;
 left:50%;
 transform:translateX(-50%);
+z-index:9999;
 background:white;
 padding:6px 12px;
 border-radius:20px;
 display:flex;
 box-shadow:0 2px 8px rgba(0,0,0,0.25);
-z-index:9999;
 }
 #searchInput{
 border:none;
 outline:none;
 font-size:14px;
-width:230px;
+width:220px;
 }
-/* TITLE FOOTER */
+/* Title */
 #title-footer{
 position:absolute;
 bottom:15px;
 left:50%;
 transform:translateX(-50%);
-background:white;
+background:rgba(255,255,255,0.85);
 padding:8px 16px;
 border-radius:12px;
+font-size:15px;
 font-weight:600;
-box-shadow:0 2px 8px rgba(0,0,0,0.25);
+backdrop-filter:blur(4px);
 z-index:9999;
+box-shadow:0 2px 8px rgba(0,0,0,0.25);
 }
-/* FILTER BAR */
+/* Filters */
 .filterBar{
 position:absolute;
 bottom:70px;
@@ -54,25 +63,62 @@ transform:translateX(-50%);
 background:white;
 padding:8px 12px;
 border-radius:16px;
+z-index:9999;
 box-shadow:0 2px 8px rgba(0,0,0,0.25);
 display:flex;
 flex-wrap:wrap;
 gap:8px;
-z-index:9999;
+font-size:13px;
+max-width:900px;
+justify-content:center;
 }
 .filterBtn{
 padding:6px 10px;
 border-radius:12px;
 background:#f2f2f2;
-border:1px solid #ddd;
 cursor:pointer;
+border:1px solid #ddd;
 white-space:nowrap;
 }
+.filterBtn:hover{ background:#e8e8e8; }
 .filterActive{
-background:#d0d0ff !important;
-border-color:#7e57c2 !important;
+background:#d0d0ff!important;
+border-color:#7e57c2!important;
 }
-/* PANEL */
+/* Timeline */
+#timelineToggle{
+position:absolute;
+top:20px;
+right:20px;
+z-index:9990;
+background:white;
+padding:6px 14px;
+border-radius:14px;
+border:1px solid #ccc;
+font-size:14px;
+cursor:pointer;
+box-shadow:0 2px 8px rgba(0,0,0,0.25);
+}
+#timelineToggle:hover{background:#eee}
+#timelineContainer{
+position:absolute;
+top:70px;
+right:20px;
+display:none;
+z-index:9989;
+background:white;
+padding:10px 14px;
+border-radius:14px;
+box-shadow:0 2px 8px rgba(0,0,0,0.25);
+}
+#yearSlider{width:180px;}
+#timelineLabel{
+text-align:center;
+font-size:14px;
+font-weight:bold;
+margin-top:6px;
+}
+/* Right panel */
 #panel{
 position:absolute;
 top:0;
@@ -82,101 +128,126 @@ max-width:80%;
 height:100%;
 background:white;
 padding:16px;
-display:none;
+box-sizing:border-box;
 overflow-y:auto;
-box-shadow:-2px 0 10px rgba(0,0,0,0.20);
+display:none;
 z-index:9998;
+box-shadow:-2px 0 10px rgba(0,0,0,0.2);
 }
 #panelClose{
 position:absolute;
 top:8px;
 right:10px;
-cursor:pointer;
-color:#999;
 font-size:18px;
+color:#999;
+cursor:pointer;
 }
-.node-title{ font-weight:700; font-size:18px; margin-top:6px; }
-.meta{ font-size:13px; color:#444; margin-bottom:10px; }
-/* LOGO DANS LE PANEL */
+h2{margin:6px 0 12px;font-size:18px;}
+.node-title{font-weight:700;margin-bottom:6px;}
+.meta{font-size:13px;margin-bottom:6px;color:#333;}
+.small{color:#666;font-size:12px;}
+.partners-list{margin:8px 0;padding-left:18px;}
+/* Logo in details panel */
 .logo-panel{
 width:72px;
 height:72px;
 border-radius:50%;
 overflow:hidden;
-box-shadow:0 2px 6px rgba(0,0,0,0.25);
 margin-bottom:10px;
+box-shadow:0 2px 6px rgba(0,0,0,0.25);
 }
 .logo-panel img{
-width:100%; height:100%; object-fit:cover;
+width:100%;
+height:100%;
+object-fit:cover;
 }
-/* MARKERS */
+/* Markers */
 .leaflet-div-icon.logo-marker{
 display:flex;
 align-items:center;
 justify-content:center;
-width:30px; height:30px;
+width:30px;
+height:30px;
 border-radius:50%;
+font-size:12px;
 font-weight:700;
 color:white;
-background:#999;
+background:rgba(255,255,255,0.12);
 border:1.4px solid rgba(255,255,255,0.9);
-box-shadow:0 3px 10px rgba(0,0,0,0.2);
+box-shadow:0 3px 10px rgba(0,0,0,0.25);
+backdrop-filter:blur(3px);
 }
-.logo-ia{ background:linear-gradient(135deg,#6e48c0,#8d6bdf); }
-.logo-media{ background:linear-gradient(135deg,#1aa88a,#34cdb4); }
-/* ARC ANIMATION */
+.logo-ia{ background:linear-gradient(135deg,#6e48c0,#8d6bdf)!important; }
+.logo-media{ background:linear-gradient(135deg,#1aa88a,#34cdb4)!important; }
+/* Arc animation */
 .grow-line{
 stroke-dasharray:1000;
 stroke-dashoffset:1000;
 animation:grow 1.8s ease forwards;
 }
-@keyframes grow{ to{ stroke-dashoffset:0; } }
-/* INFO BUTTON */
-#infoBtn{
+@keyframes grow{
+to{stroke-dashoffset:0;}
+}
+/* ====== Info Button + Panel ====== */
+#infoButton{
 position:absolute;
-top:20px;
+bottom:130px;
 right:20px;
-background:white;
-padding:6px 10px;
-border-radius:16px;
-border:1px solid #ccc;
-cursor:pointer;
 z-index:9999;
+background:white;
+border-radius:50%;
+width:38px;
+height:38px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:20px;
+cursor:pointer;
 box-shadow:0 2px 8px rgba(0,0,0,0.25);
 }
+#infoButton:hover{ background:#f2f2f2; }
 #infoPanel{
 position:absolute;
-top:80px;
-right:20px;
-width:260px;
+top:50%;
+left:50%;
+width:360px;
+max-width:90%;
+transform:translate(-50%,-50%);
+background:rgba(255,255,255,0.95);
+backdrop-filter:blur(6px);
+padding:20px;
+border-radius:16px;
+box-shadow:0 4px 20px rgba(0,0,0,0.25);
+z-index:10000;
 display:none;
-background:white;
-padding:12px;
-border-radius:12px;
-box-shadow:0 2px 8px rgba(0,0,0,0.25);
-z-index:9999;
 }
+#infoClose{
+position:absolute;
+right:12px;
+top:10px;
+font-size:20px;
+cursor:pointer;
+color:#777;
+}
+#infoPanel ul{ padding-left:18px; }
+#infoPanel .small{ font-size:12px;color:#666;margin-top:12px; }
 </style>
 </head>
 <body>
 <div id="map"></div>
 <!-- SEARCH BAR -->
 <div id="searchBar">
-<input id="searchInput" type="text" placeholder="Rechercher une entreprise…">
-</div>
-<!-- INFO BUTTON -->
-<div id="infoBtn">ℹ️ Info</div>
-<div id="infoPanel">
-<p style="margin-top:0;">
-<strong>Légende interactive :</strong><br><br>
-🟣 Pastilles violettes = Entreprises d’IA<br>
-🟢 Pastilles vertes = Médias<br>
-🔵 Lignes = Partenariats IA ↔ Médias<br><br>
-📌 Vous pouvez filtrer, rechercher, ou cliquer une entreprise pour afficher ses partenaires.
-</p>
+<input id="searchInput" type="text" placeholder="Rechercher une entreprise...">
 </div>
 <!-- TITLE -->
 <div id="title-footer">Cartographie des partenariats IA ↔ Médias (2023–2025)</div>
+<!-- TIMELINE TOGGLE -->
+<div id="timelineToggle">Activer la timeline</div>
+<!-- TIMELINE SLIDER -->
+<div id="timelineContainer">
+<input type="range" id="yearSlider" min="2023" max="2025" step="1" value="2025">
+<div id="timelineLabel">Année : 2025</div>
+</div>
 <!-- FILTERS -->
 <div class="filterBar">
 <div class="filterBtn" data-filter="ia">IA</div>
@@ -191,64 +262,78 @@ z-index:9999;
 <div class="filterBtn" data-filter="allLinks">Toutes connexions</div>
 <div class="filterBtn" data-filter="reset">Reset</div>
 </div>
-<!-- PANEL -->
+<!-- DETAILS PANEL -->
 <div id="panel">
 <div id="panelClose">✕</div>
 <h2>Partenariats IA ↔ Médias</h2>
-<div id="details"><p>Clique sur une entreprise.</p></div>
+<div id="details"><p class="small">Clique sur une entreprise.</p></div>
+</div>
+<!-- INFO BUTTON -->
+<div id="infoButton">ℹ️</div>
+<!-- INFO PANEL -->
+<div id="infoPanel">
+<div id="infoClose">✕</div>
+<h2>À propos</h2>
+<p>
+Cette carte montre les partenariats entre entreprises d’IA et médias (2023–2025).
+Utilise les filtres, la timeline et la recherche pour explorer les relations.
+</p>
+<h3>Légende</h3>
+<ul>
+<li><b>Pastilles violettes</b> = entreprises d’IA</li>
+<li><b>Pastilles vertes</b> = Médias</li>
+<li><b>Arcs</b> = partenariats</li>
+<li><b>Filtres</b> = exploration ciblée</li>
+<li><b>Reset</b> = retour à la vue initiale</li>
+</ul>
+<p class="small">Réalisé par Mathieu Vissouarn — Powered by Leaflet</p>
 </div>
 <!-- JS LIBS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script>
-// =================================================
-// 1) VUE INITIALE
-// =================================================
-const INITIAL_VIEW = [30, 0];
+/* ================================
+1) MAP + CLUSTERS
+================================ */
+const INITIAL_VIEW = [30,0];
 const INITIAL_ZOOM = 2;
-// =================================================
-// 2) MAP
-// =================================================
-const map = L.map("map", {
-zoomSnap: 0.1,
-zoomDelta: 0.5
-}).setView(INITIAL_VIEW, INITIAL_ZOOM);
+const map = L.map("map").setView(INITIAL_VIEW, INITIAL_ZOOM);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 maxZoom: 8
 }).addTo(map);
-// =================================================
-// 3) CLUSTER GROUP (sans zoom automatique)
-// =================================================
+/* Cluster group */
 const clusterGroup = L.markerClusterGroup({
 maxClusterRadius: 35,
-zoomToBoundsOnClick: false, // empêche le zoom imposé
+// Empêche le zoom automatique
+zoomToBoundsOnClick: false,
+// Spiderfy immédiatement au clic
 spiderfyOnEveryZoom: true,
 spiderfyOnMaxZoom: true,
 showCoverageOnHover: false,
 iconCreateFunction: cluster => {
 return L.divIcon({
-html: `
-<div style="
-width:34px; height:34px;
+html: `<div style="
+width:34px;height:34px;
 border-radius:50%;
-background:#666;
+background:#888;
 color:white;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:13px;
-font-weight:700;">
+display:flex;align-items:center;justify-content:center;
+font-size:13px;font-weight:700;">
 ${cluster.getChildCount()}
-</div>
-`,
-className: "",
-iconSize: [34, 34]
+</div>`,
+className: "cluster-icon",
+iconSize: [34,34]
 });
 }
 });
-// =================================================
-// 4) DONNÉES NODES
-// =================================================
+// Empêche un comportement résiduel de zoom par défaut
+clusterGroup.on('clusterclick', function (a) {
+a.layer.spiderfy();
+});
+map.addLayer(clusterGroup);
+/* ================================
+2) DATASET
+================================ */
 const nodes = [
 {id:"openai",type:"ia",color:"#7E57C2",short:"OA",name:"OpenAI",city:"San Francisco",country:"USA",coords:[37.7749,-122.4194]},
 {id:"google",type:"ia",color:"#4285F4",short:"GO",name:"Google",city:"Mountain View",country:"USA",coords:[37.3861,-122.0839]},
@@ -276,7 +361,7 @@ const nodes = [
 {id:"gedi",type:"media",short:"GE",name:"GEDI",city:"Rome",country:"Italie",coords:[41.9028,12.4964]},
 {id:"reuters",type:"media",short:"RT",name:"Reuters",city:"Londres",country:"UK",coords:[51.5074,-0.1278]},
 {id:"usatoday",type:"media",short:"UT",name:"USA Today Network",city:"McLean",country:"USA",coords:[38.9339,-77.1773]},
-{id:"people",type:"media",short:"PE",name:"People Inc.",city:"New York",country:"USA",coords:[40.7128,-74.006]},
+{id:"people",type:"media",short:"PE",name:"People",city:"New York",country:"USA",coords:[40.7128,-74.006]},
 {id:"derspiegel",type:"media",short:"DS",name:"Der Spiegel",city:"Hambourg",country:"Allemagne",coords:[53.5511,9.9937]},
 {id:"fortune",type:"media",short:"FO",name:"Fortune",city:"New York",country:"USA",coords:[40.7128,-74.006]},
 {id:"entrepreneur",type:"media",short:"EN",name:"Entrepreneur",city:"Irvine",country:"USA",coords:[33.6846,-117.8265]},
@@ -287,9 +372,6 @@ const nodes = [
 {id:"leeenterprises",type:"media",short:"LE",name:"Lee Enterprises",city:"Davenport",country:"USA",coords:[41.5236,-90.5776]},
 {id:"bertelsmann",type:"media",short:"BE",name:"Bertelsmann",city:"Gütersloh",country:"Allemagne",coords:[51.9039,8.3834]}
 ];
-// =================================================
-// 5) PARTENARIATS
-// =================================================
 const links = [
 {from:"openai",to:"newscorp",year:2024},
 {from:"openai",to:"financialtimes",year:2024},
@@ -331,195 +413,258 @@ const links = [
 {from:"deepmind",to:"financialtimes",year:2023},
 {from:"mistral",to:"lemonde",year:2024}
 ];
-// =================================================
-// 6) LOGOS BASE64
-// =================================================
+/* ================================
+3) LOGOS BASE64 pour panneau
+================================ */
 const logos = {};
-function makeLogo(node){
+function makeLogoDataUrl(node){
+const color = (node.type === "ia") ? "#6e48c0" : "#1aa88a";
+const text = node.short;
 const svg = `
 <svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'>
-<circle cx='40' cy='40' r='36' fill='${node.type==="ia"?"#6e48c0":"#1aa88a"}' />
-<text x='40' y='47' text-anchor='middle' font-size='28' fill='white' font-family='Arial'>${node.short}</text>
+<circle cx='40' cy='40' r='36' fill='${color}' />
+<text x='40' y='46' text-anchor='middle' font-family='Arial' font-size='28' fill='white'>${text}</text>
 </svg>`;
 return "data:image/svg+xml;base64," + btoa(svg);
 }
-// =================================================
-// 7) MARKERS
-// =================================================
+/* ================================
+4) MARKERS dans cluster
+================================ */
 const nodeMarkers = {};
 nodes.forEach(n=>{
-logos[n.id] = makeLogo(n);
+logos[n.id] = makeLogoDataUrl(n);
 const icon = L.divIcon({
 className:"leaflet-div-icon logo-marker "+(n.type==="ia"?"logo-ia":"logo-media"),
 html:n.short,
 iconSize:[30,30],
 iconAnchor:[15,15]
 });
-const marker = L.marker(n.coords, {icon});
-marker.on("click", ()=> onNodeClick(n));
-nodeMarkers[n.id] = marker;
-clusterGroup.addLayer(marker);
+const m = L.marker(n.coords,{icon});
+m.on("click",()=>onNodeClick(n));
+nodeMarkers[n.id] = m;
+clusterGroup.addLayer(m);
 });
-map.addLayer(clusterGroup);
-// =================================================
-// 8) ARCS (identiques à ton rendu actuel)
-// =================================================
+/* ================================
+5) ARCS (moitié haut / moitié bas)
+================================ */
 function buildArcCoords(a,b,index,total){
 const lat1=a[0], lon1=a[1];
 const lat2=b[0], lon2=b[1];
 const dx=lat2-lat1, dy=lon2-lon1;
 const dist=Math.sqrt(dx*dx+dy*dy)||1;
-const mx=(lat1+lat2)/2, my=(lon1+lon2)/2;
-const direction = (index < total/2) ? 1 : -1;
-const nx=(-dy/dist)*direction, ny=(dx/dist)*direction;
-const cx=mx + nx * dist * 0.12;
-const cy=my + ny * dist * 0.12;
+const mx=(lat1+lat2)/2;
+const my=(lon1+lon2)/2;
+const dir = (index < total/2) ? 1 : -1;
+const nx = (-dy / dist) * dir;
+const ny = ( dx / dist) * dir;
+const curve = 0.12;
+const cx = mx + nx * curve * dist;
+const cy = my + ny * curve * dist;
 const coords=[];
-for(let i=0;i<=24;i++){
-const t=i/24;
-coords.push([
-(1-t)*(1-t)*lat1 + 2*(1-t)*t*cx + t*t*lat2,
-(1-t)*(1-t)*lon1 + 2*(1-t)*t*cy + t*t*lon2
-]);
+const steps=24;
+for(let i=0;i<=steps;i++){
+const t=i/steps;
+const lat=(1-t)*(1-t)*lat1 + 2*(1-t)*t*cx + t*t*lat2;
+const lon=(1-t)*(1-t)*lon1 + 2*(1-t)*t*cy + t*t*lon2;
+coords.push([lat,lon]);
 }
 return coords;
 }
-const linkLayers = links.map((l,idx)=>{
-const A=nodes.find(n=>n.id===l.from);
-const B=nodes.find(n=>n.id===l.to);
-const arc=buildArcCoords(A.coords,B.coords,idx,links.length);
-return {
-from:A, to:B, year:l.year,
-layer:L.polyline(arc,{color:A.color,weight:2.2,opacity:0.9})
-};
+/* Build all arcs */
+const linkLayers = links.map((l,index)=>{
+const A = nodes.find(n=>n.id===l.from);
+const B = nodes.find(n=>n.id===l.to);
+const arc = buildArcCoords(A.coords,B.coords,index,links.length);
+const line = L.polyline(arc,{
+color:A.color,
+weight:2.4,
+opacity:0.9
 });
-// =================================================
-// 9) PANEL
-// =================================================
-const panel=document.getElementById("panel");
-const details=document.getElementById("details");
-function clearLines(){
-linkLayers.forEach(l=>map.removeLayer(l.layer));
-}
-document.getElementById("panelClose").onclick=()=>{
+return {from:A,to:B,year:l.year,layer:line};
+});
+/* ================================
+6) PANEL
+================================ */
+const panel = document.getElementById("panel");
+const details = document.getElementById("details");
+document.getElementById("panelClose").onclick = ()=>{
+clearSelection();
 panel.style.display="none";
-clearLines();
 };
+function clearSelection(){
+linkLayers.forEach(l=>map.removeLayer(l.layer));
+details.innerHTML = "<p class='small'>Clique sur une entreprise.</p>";
+}
+/* IA CLICK → afficher panneau + arcs + partenaires */
 function onNodeClick(n){
-clearLines();
+clearSelection();
+/* Retirer cluster pour un affichage propre */
+clusterGroup.clearLayers();
+/* Remettre tous les markers */
+nodes.forEach(v=> clusterGroup.addLayer(nodeMarkers[v.id]));
+/* Relations */
 const rel = linkLayers.filter(l=>l.from.id===n.id || l.to.id===n.id);
 rel.forEach(l=>{
 l.layer.addTo(map);
 if(l.layer._path) l.layer._path.classList.add("grow-line");
 });
-const logo = `<div class="logo-panel"><img src="${logos[n.id]}"></div>`;
+/* partenaires */
+const partners = rel.map(l=> l.from.id===n.id ? l.to : l.from);
+partners.forEach(p=> clusterGroup.addLayer(nodeMarkers[p.id]));
+/* LOGO */
+const logoUrl = logos[n.id];
+const logoHtml = `<div class="logo-panel"><img src="${logoUrl}" /></div>`;
 details.innerHTML = `
-${logo}
+${logoHtml}
 <div class="node-title">${n.name}</div>
-<div class="meta">${n.city}, ${n.country}</div>
-<strong>Partenariats :</strong>
-<ul>
+<div class="meta">📍 ${n.city}, ${n.country}</div>
+<strong>Partenariats</strong>
+<ul class="partners-list">
 ${rel.map(l=>{
-const o=(l.from.id===n.id?l.to:l.from);
+const o = (l.from.id===n.id ? l.to : l.from);
 return `<li>${o.name} (${l.year})</li>`;
 }).join("")}
 </ul>
 `;
 panel.style.display="block";
 }
-// =================================================
-// 10) RECHERCHE (avec ouverture cluster + zoom modéré)
-// =================================================
-document.getElementById("searchInput").addEventListener("input",function(){
-const q=this.value.toLowerCase().trim();
-if(q.length<2) return;
-const found = nodes.find(n =>
+/* ================================
+7) RECHERCHE
+================================ */
+document.getElementById("searchInput").addEventListener("input", function () {
+const q = this.value.toLowerCase().trim();
+if (q.length < 2) return;
+const f = nodes.find(n =>
 n.name.toLowerCase().includes(q) ||
 n.short.toLowerCase().includes(q)
 );
-if(found){
-clusterGroup.zoomToShowLayer(nodeMarkers[found.id], ()=>{
-map.setView(found.coords, 4); // zoom modéré
-onNodeClick(found);
-});
+if (f) {
+map.setView(f.coords, 4); // zoom uniquement pour la recherche
+onNodeClick(f); // ouvre le panneau + lignes
 }
 });
-// =================================================
-// 11) INFO PANEL
-// =================================================
-const infoBtn=document.getElementById("infoBtn");
-const infoPanel=document.getElementById("infoPanel");
-let infoOpen=false;
-infoBtn.onclick=()=>{
-infoOpen=!infoOpen;
-infoPanel.style.display = infoOpen ? "block" : "none";
-};
-// =================================================
-// 12) FILTRES
-// =================================================
+/* ================================
+8) FILTRES
+================================ */
 document.querySelectorAll(".filterBtn").forEach(btn=>{
-btn.onclick=()=>{
-const f=btn.dataset.filter;
+btn.onclick = ()=>{
+const f = btn.dataset.filter;
 document.querySelectorAll(".filterBtn").forEach(b=>b.classList.remove("filterActive"));
 btn.classList.add("filterActive");
-panel.style.display="none";
-clearLines();
-// RESET
+clearSelection();
+clusterGroup.clearLayers();
+/* RESET */
 if(f==="reset"){
+nodes.forEach(n=> clusterGroup.addLayer(nodeMarkers[n.id]));
+panel.style.display="none";
 map.setView(INITIAL_VIEW, INITIAL_ZOOM);
-clusterGroup.refreshClusters();
 return;
 }
-// ALL CONNECTIONS
+/* ALL CONNECTIONS */
 if(f==="allLinks"){
-map.setView(INITIAL_VIEW, INITIAL_ZOOM);
-clearLines();
+nodes.forEach(n=> clusterGroup.addLayer(nodeMarkers[n.id]));
 linkLayers.forEach(l=>{
 l.layer.addTo(map);
 if(l.layer._path) l.layer._path.classList.add("grow-line");
 });
+panel.style.display="none";
+map.setView(INITIAL_VIEW, INITIAL_ZOOM);
 return;
 }
-// GROUP IA
+/* IA GROUP */
 if(f==="ia"){
-clusterGroup.eachLayer(m=>{
-const id = Object.keys(nodeMarkers).find(k => nodeMarkers[k]===m);
-const n = nodes.find(n=>n.id===id);
-if(n.type==="ia") m.addTo(clusterGroup);
-else clusterGroup.removeLayer(m);
-});
+nodes.filter(n=>n.type==="ia").forEach(n=> clusterGroup.addLayer(nodeMarkers[n.id]));
+panel.style.display="none";
 return;
 }
-// GROUP MEDIA
+/* MEDIA GROUP */
 if(f==="media"){
-clusterGroup.eachLayer(m=>{
-const id = Object.keys(nodeMarkers).find(k => nodeMarkers[k]===m);
-const n = nodes.find(n=>n.id===id);
-if(n.type==="media") m.addTo(clusterGroup);
-else clusterGroup.removeLayer(m);
-});
+nodes.filter(n=>n.type==="media").forEach(n=> clusterGroup.addLayer(nodeMarkers[n.id]));
+panel.style.display="none";
 return;
 }
-// IA UNIQUE
-const iaNode = nodes.find(n=>n.id===f);
-if(iaNode && iaNode.type==="ia"){
-map.setView(iaNode.coords, 3);
-clusterGroup.clearLayers();
-clusterGroup.addLayer(nodeMarkers[iaNode.id]);
-const rel = linkLayers.filter(
-l=>l.from.id===iaNode.id || l.to.id===iaNode.id
-);
-const partners = rel.map(l=> (l.from.id===iaNode.id?l.to:l.from) );
+/* IA INDIVIDUELLE */
+const ia = nodes.find(n=>n.id===f);
+if(ia){
+const rel = linkLayers.filter(l=>l.from.id===ia.id || l.to.id===ia.id);
+const partners = rel.map(l=> l.from.id===ia.id ? l.to : l.from);
+clusterGroup.addLayer(nodeMarkers[ia.id]);
 partners.forEach(p=> clusterGroup.addLayer(nodeMarkers[p.id]));
 rel.forEach(l=>{
 l.layer.addTo(map);
 if(l.layer._path) l.layer._path.classList.add("grow-line");
 });
-onNodeClick(iaNode);
+/* PANEL */
+details.innerHTML = `
+<div class="node-title">${ia.name}</div>
+<div class="meta">📍 ${ia.city}, ${ia.country}</div>
+<strong>Partenariats</strong>
+<ul class="partners-list">
+${rel.map(l=>{
+const o=(l.from.id===ia.id?l.to:l.from);
+return `<li>${o.name} (${l.year})</li>`;
+}).join("")}
+</ul>
+`;
+panel.style.display="block";
 return;
 }
 };
 });
+/* ================================
+9) TIMELINE
+================================ */
+let timelineActive = false;
+const toggleBtn = document.getElementById("timelineToggle");
+const timelineBox = document.getElementById("timelineContainer");
+const slider = document.getElementById("yearSlider");
+const label = document.getElementById("timelineLabel");
+toggleBtn.onclick = ()=>{
+timelineActive = !timelineActive;
+if(timelineActive){
+toggleBtn.innerHTML="Désactiver la timeline";
+timelineBox.style.display="block";
+applyTimeline();
+} else {
+toggleBtn.innerHTML="Activer la timeline";
+timelineBox.style.display="none";
+restoreAll();
+}
+};
+function restoreAll(){
+clearSelection();
+clusterGroup.clearLayers();
+nodes.forEach(n=> clusterGroup.addLayer(nodeMarkers[n.id]));
+linkLayers.forEach(l=>{
+l.layer.addTo(map);
+if(l.layer._path) l.layer._path.classList.add("grow-line");
+});
+}
+function applyTimeline(){
+const year = parseInt(slider.value,10);
+label.innerHTML = "Année : " + year;
+clearSelection();
+clusterGroup.clearLayers();
+nodes.forEach(n=> clusterGroup.addLayer(nodeMarkers[n.id]));
+linkLayers.forEach(l=>{
+const show = (l.year===year);
+if(show){
+l.layer.addTo(map);
+if(l.layer._path) l.layer._path.classList.add("grow-line");
+}
+});
+}
+slider.oninput = ()=>{
+if(timelineActive) applyTimeline();
+};
+/* ================================
+10) INFO PANEL
+================================ */
+const infoBtn = document.getElementById("infoButton");
+const infoPanel = document.getElementById("infoPanel");
+const infoClose = document.getElementById("infoClose");
+infoBtn.onclick = ()=> infoPanel.style.display="block";
+infoClose.onclick = ()=> infoPanel.style.display="none";
 </script>
 </body>
 </html>

@@ -273,20 +273,82 @@ color:#777;
 <!-- INFO PANEL -->
 <div id="infoPanel">
 <div id="infoClose">✕</div>
-<h2>À propos</h2>
-<p>
-Cette carte montre les partenariats entre entreprises d’IA et médias (2023–2025).
-Utilise les filtres, la timeline et la recherche pour explorer les relations.
+<h2 style="margin-top:12px; font-size:20px;">
+<span style="font-size:22px;">ℹ️</span> À propos
+</h2>
+<p style="margin-top:10px; line-height:1.5; font-size:14px;">
+Cette carte représente les partenariats entre entreprises d’IA et médias (2023–2025).
+Utilise les filtres, la timeline et la recherche pour explorer les connexions.
 </p>
-<h3>Légende</h3>
-<ul>
-<li><b>Pastilles violettes</b> = entreprises d’IA</li>
-<li><b>Pastilles vertes</b> = Médias</li>
-<li><b>Arcs</b> = partenariats</li>
-<li><b>Filtres</b> = exploration ciblée</li>
-<li><b>Reset</b> = retour à la vue initiale</li>
+<h3 style="margin-top:20px; font-size:17px;">📌 Légende</h3>
+<ul style="line-height:1.9; font-size:14px; padding-left:18px;">
+<!-- IA -->
+<li>
+<span style="
+display:inline-block;
+width:16px;
+height:16px;
+border-radius:50%;
+margin-right:6px;
+vertical-align:middle;
+background:linear-gradient(135deg,#6e48c0,#8d6bdf);
+border:1.4px solid rgba(255,255,255,0.9);
+box-shadow:0 2px 4px rgba(0,0,0,0.25);">
+</span>
+<b>Entreprises d’IA</b>
+</li>
+<!-- MÉDIAS -->
+<li>
+<span style="
+display:inline-block;
+width:16px;
+height:16px;
+border-radius:50%;
+margin-right:6px;
+vertical-align:middle;
+background:linear-gradient(135deg,#1aa88a,#34cdb4);
+border:1.4px solid rgba(255,255,255,0.9);
+box-shadow:0 2px 4px rgba(0,0,0,0.25);">
+</span>
+<b>Médias</b>
+</li>
+<!-- CLUSTERS -->
+<li>
+<span style="
+display:inline-block;
+width:16px;
+height:16px;
+border-radius:50%;
+margin-right:6px;
+vertical-align:middle;
+background:linear-gradient(135deg,#bdbdbd,#8e8e8e);
+border:1.4px solid rgba(255,255,255,0.9);
+box-shadow:0 2px 4px rgba(0,0,0,0.25);">
+</span>
+<b>Clusters</b> : regroupement automatique de marqueurs proches
+</li>
+<!-- ARCS -->
+<li>
+<span style="
+display:inline-block;
+margin-right:6px;
+font-size:18px;">〰️</span>
+<b>Arcs</b> : partenariats
+</li>
+<!-- FILTRES -->
+<li>
+<span style="margin-right:6px; font-size:17px;">🧭</span>
+<b>Filtres</b> : vue ciblée des relations
+</li>
+<!-- RESET -->
+<li>
+<span style="margin-right:6px; font-size:17px;">🔄</span>
+<b>Reset</b> : retour à la vue initiale
+</li>
 </ul>
-<p class="small">Réalisé par Mathieu Vissouarn — Powered by Leaflet</p>
+<p class="small" style="margin-top:26px; font-size:12px; color:#666;">
+Réalisé par Mathieu Vissouarn — Powered by Leaflet
+</p>
 </div>
 <!-- JS LIBS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
@@ -534,14 +596,24 @@ panel.style.display="block";
 document.getElementById("searchInput").addEventListener("input", function () {
 const q = this.value.toLowerCase().trim();
 if (q.length < 2) return;
-const f = nodes.find(n =>
+const found = nodes.find(n =>
 n.name.toLowerCase().includes(q) ||
 n.short.toLowerCase().includes(q)
 );
-if (f) {
-map.setView(f.coords, 4); // zoom uniquement pour la recherche
-onNodeClick(f); // ouvre le panneau + lignes
+if (!found) return;
+// Trouver son marker
+const marker = nodeMarkers[found.id];
+// Vérifier si le marker est actuellement dans un cluster fermé
+const parent = clusterGroup.getVisibleParent(marker);
+// Si le marker est dans un gros cluster → on ouvre automatiquement
+if (parent && parent instanceof L.MarkerCluster) {
+// Spiderfy le cluster SANS ZOOMER
+parent.spiderfy();
 }
+// Petit zoom léger uniquement pour la recherche
+map.setView(found.coords, 4);
+// Ouvrir le panneau et afficher ses liens
+onNodeClick(found);
 });
 /* ================================
 8) FILTRES
